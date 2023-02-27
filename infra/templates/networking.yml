@@ -1,0 +1,96 @@
+Description: Networking architecture
+
+Parameters:
+  VpcCidr:
+    Description: CIDR block for the VPC
+    Type: String
+  PubSubnetCidr:
+    Type: String
+  PriSubnetCidr:
+    Type: String
+  StudentName:
+    Type: String
+
+Resources:
+  Lab16Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1"
+      CidrBlock: !Ref VpcCidr
+
+  PubSub1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PubSubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-pub-sub"
+
+  PriSub1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PriSubnetCidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-pri-sub"
+          
+  NetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-net-gw"
+ 
+  NetGwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref NetGateway1
+      VpcId: !Ref Lab16Vpc
+  
+  NetGwRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-route-table-1"
+
+  NetGwRoute1:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - NetGateway1
+      - NetGwAttachment
+    Properties:
+      RouteTableId: !Ref NetGwRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref NetGateway1
+      
+  PubSubPubRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NetGwRouteTable1
+      SubnetId: !Ref PubSub1
+
+Outputs:
+  VpcId:
+    Description: Id of the Lab16 bucket
+    Value: !Ref Lab16Vpc
+    Export:
+      Name: !Sub "${StudentName}-vpc-id"
+  PubSubnetId:
+    Description: PubSubnet ID
+    Value: !Ref PubSub1
+    Export:
+      Name: !Sub "${StudentName}-pub-subnet-a-id"
+  PriSubnetId:
+    Description: PriSubnet ID
+    Value: !Ref PriSub1
+    Export:
+      Name: !Sub "${StudentName}-pri-subnet-a-id"

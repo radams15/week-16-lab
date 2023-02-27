@@ -1,0 +1,49 @@
+Description: EC2 & ASG setup for counterstrike gaming server
+
+Parameters:
+  # inject in the latest AMI
+  Linux2Ami:
+    Type: String
+  UserDataScript:
+    Type: String
+  instanceType:
+    Type: String
+    Default: t2.micro
+
+Resources:
+  CsLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      # IamInstanceProfile: !Ref CsServerInstanceProfile
+      ImageId: !Sub ${Linux2Ami}
+      InstanceType: !Sub ${instanceType} 
+      AssociatePublicIpAddress: true
+      SecurityGroups: 
+        - !Ref CsServerSecurityGroup
+      UserData:
+        Fn::Base64: !Ref UserDataScript
+
+  CsServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for cs server
+      GroupName: cs-server-sg
+      SecurityGroupIngress:
+        - Description: SSH from my current ip
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - Description: Web from my current ip for testing
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+     Tags:
+        - Key: Name
+          Value: "rhys-adams-poems-vpc-1"
+
+# Exporting outputs to use in downstream stacks
+Outputs:
+  StackName:
+    Value: !Ref AWS::StackName

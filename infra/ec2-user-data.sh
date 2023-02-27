@@ -20,7 +20,7 @@ yum install -y \
 
 # put your own github username here
 echo "Setting up ssh access keys" | tee -a "${logName}"
-echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCefjJrL64hgYRUecLJB0jEQC2MMAsFMeM5LnYgXzx7z0Y2ktR7LmVrbyiZP+sNDCWzpZp93kiFEwyGpN0oWJiQixI+s6sFhqLSo84h6zIRfGJxQfhxQzFzzweEaN5h1HiCFUtFQHB5mB1qLpMLuQp9qY8ea8wqhMCQ952gZEH9bfZtD6TKj7m6ixtkQQeTB1rMHLEeGWr3BJL+QogQaOpxs8U0eML22hTmmCAQ3pXNe0inchPlAQFD7ADEchk8hc+BZBkUROeM8NXc0qmQGc8qZ6c0wtbNCBtrUQqLpO1ghgJIi9xx1c7E9X5jHRewdyLz/eyuIXmOGpntv/ExvN0x12hyzGPxAk+LeiPSqcaoQTRJ2AXNIiSNT/UOmK8AWQa8jH8xqB8ieHMSc4EYrcPgVFRqQdQBOQRdS2UKqeY/tsN+ebnGGNZB+nlkeY6Hz20jjZrwprmjxuCuTs5ulI642N4E1Y/2JOkpdhdAvSUmgtyrVQ8cKtk/9eoM/2qWxyk= rhys@The-Brick' | tee -a /home/ec2-user/.ssh/authorized_keys
+curl -s https://github.com/radams15.keys | tee -a /home/ec2-user/.ssh/authorized_keys
 
 # add ec2 user to the docker group which allows docket to run without being a super-user
 usermod -aG docker ec2-user
@@ -51,7 +51,7 @@ docker run -d \
 ## 👇👇👇👇👇 application install commands here 👇👇👇👇👇
 
 echo "installing Nodejs using NVM" | tee -a "${logName}"
-curl --silent --location https://rpm.nodesource.com/setup_18.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 yum -y install nodejs
 
 echo "installing application" | tee -a "${logName}"

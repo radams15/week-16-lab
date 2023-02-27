@@ -9,39 +9,51 @@ Parameters:
   instanceType:
     Type: String
     Default: t2.micro
+  KeyName:
+    Type: String
+    Default: 'rhys-key-public'
+  StudentName:
+    Type: String
 
 Resources:
-  CsLaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  EC2Instance:
+    Type: AWS::EC2::Instance
     Properties:
-      # IamInstanceProfile: !Ref CsServerInstanceProfile
-      ImageId: !Sub ${Linux2Ami}
-      InstanceType: !Sub ${instanceType} 
-      AssociatePublicIpAddress: true
-      SecurityGroups: 
-        - !Ref CsServerSecurityGroup
-      UserData:
-        Fn::Base64: !Ref UserDataScript
-
-  CsServerSecurityGroup:
+      InstanceType: !Ref 'instanceType'
+      SecurityGroups: []
+      KeyName: !Ref 'KeyName'
+      ImageId: !Ref 'Linux2Ami'
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref InstanceSecurityGroup
+          AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId:
+            Fn::ImportValue: !Sub '${StudentName}-pub-subnet-a-id'
+  
+  InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: SG for cs server
-      GroupName: cs-server-sg
+      VpcId:
+        Fn::ImportValue: !Sub '${StudentName}-vpc-id'
+      GroupDescription: Enable SSH access via port 22
       SecurityGroupIngress:
-        - Description: SSH from my current ip
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        - Description: Web from my current ip for testing
-          IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-     Tags:
-        - Key: Name
-          Value: "rhys-adams-poems-vpc-1"
+
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: '0.0.0.0/0'
+        
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+        CidrIp: '0.0.0.0/0'
+        
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: '0.0.0.0/0'
 
 # Exporting outputs to use in downstream stacks
 Outputs:

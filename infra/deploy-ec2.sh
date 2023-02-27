@@ -1,4 +1,5 @@
 export AWS_REGION=eu-west-2
+export AWS_DEFAULT_REGION=eu-west-2
 
 readonly LINUX2_AMI=$(
   aws ec2 describe-images \
@@ -10,15 +11,16 @@ readonly LINUX2_AMI=$(
 
 echo "This is the current Linux 2 AMI: ${LINUX2_AMI}"
 
-UserDataScript=boot.sh
+UserDataScript=ec2-user-data.sh
 # deploys server
 aws cloudformation deploy \
-  --template-file "templates/server.yml" \
+  --template-file "templates/ec2.yml" \
   --capabilities CAPABILITY_IAM \
   --no-fail-on-empty-changeset \
   --stack-name rhys-adams-vpc-1 \
   --region "${AWS_DEFAULT_REGION}" \
   --parameter-overrides \
       Linux2Ami="${LINUX2_AMI}" \
-      UserDataScript="${UserDataScript}" 
+      UserDataScript="${UserDataScript}" \
+      StudentName="rhys-adams"
 

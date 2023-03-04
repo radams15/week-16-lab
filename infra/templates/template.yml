@@ -1,0 +1,233 @@
+Description: EC2 & ASG setup for counterstrike gaming server
+
+Parameters:
+  # inject in the latest AMI
+  Linux2Ami:
+    Type: String
+  UserDataScript:
+    Type: String
+  instanceType:
+    Type: String
+    Default: t2.micro
+  KeyName:
+    Type: String
+    Default: 'rhys-key-public'
+  StudentName:
+    Type: String
+  VpcCidr:
+    Description: CIDR block for the VPC
+    Type: String
+  PubSubnetCidr:
+    Type: String
+  PriSubnetCidr:
+    Type: String
+  StudentName:
+    Type: String
+
+
+Resources:
+  Lab16Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1"
+      CidrBlock: !Ref VpcCidr
+
+  PubSub1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PubSubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-pub-sub"
+
+  PriSub1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PriSubnetCidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-pri-sub"
+          
+  NATGateway:
+   Type: AWS::EC2::NatGateway
+   Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref PubSub1
+      Tags:
+      - Key: stack
+        Value: production
+      - Key: Name
+        Value: !Sub "${StudentName}-vpc-1-nat-gw"
+        
+  NATGatewayEIP:
+   Type: AWS::EC2::EIP
+   Properties:
+      Domain: vpc
+      
+  RouteNATGateway:
+   DependsOn: NATGateway
+   Type: AWS::EC2::Route
+   Properties:
+      RouteTableId: !Ref NatGwRouteTable1
+      DestinationCidrBlock: !Ref PriSubnetCidr
+      NatGatewayId: !Ref NATGateway
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-nat-gw-route"
+
+  NatGwRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-route-table-1"
+          
+  NetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-net-gw"
+ 
+  NetGwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref NetGateway1
+      VpcId: !Ref Lab16Vpc
+  
+  NetGwRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-net-gw-route-table"
+
+  NetGwRoute1:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - NetGateway1
+      - NetGwAttachment
+    Properties:
+      RouteTableId: !Ref NetGwRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref NetGateway1
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-net-gw-route1"
+      
+  PubSubPubRouteAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NetGwRouteTable1
+      SubnetId: !Ref PubSub1
+      
+  PubSubPubRouteAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatGwRouteTable1
+      SubnetId: !Ref PubSub1
+      
+  PriSubPriRouteAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatGwRouteTable1
+      SubnetId: !Ref PriSub1
+
+  LoadBalance1:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Name: !Sub "${StudentName}-LoadBalance1"
+      Subnets:
+        - !Ref PubSub1
+      Tags: 
+        - Key: Name
+          Value: !Sub "${StudentName}-LoadBalance1"
+      Type: "network"
+      
+  LoadBalance1Target:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - EC2Instance
+    Properties:
+      Name: !Sub "${StudentName}-LoadBalanceTarget"
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-LoadBalance1Target"
+      TargetType: "instance"
+      Targets:
+        - Id: !Ref EC2Instance
+      Port: 22
+      Protocol: "TCP"
+      VpcId: !Ref Lab16Vpc
+
+  LoadBalance1Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalance1
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-vpc-1-LoadBalanceListener"
+      DefaultActions:
+        - Type: "forward"
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref LoadBalance1Target
+      Port: 22
+      Protocol: "TCP"
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref 'instanceType'
+      KeyName: !Ref 'KeyName'
+      ImageId: !Ref 'Linux2Ami'
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-ec2-instance-1"
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref EC2SecurityGroup
+          AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PriSub1
+      UserData:
+        Fn::Base64: !Ref UserDataScript
+  
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref Lab16Vpc
+      GroupDescription: Enable SSH access via port 22
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentName}-ec2-instance-1-sec-grp"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: '0.0.0.0/0'
+        
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+        CidrIp: '0.0.0.0/0'
+        
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: '0.0.0.0/0'
+
+# Exporting outputs to use in downstream stacks
+Outputs:
+  StackName:
+    Value: !Ref AWS::StackName

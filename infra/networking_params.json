@@ -1,8 +1,0 @@
-{
-    "Parameters": {
-      "VpcCidr": "10.0.0.0/22",
-      "PubSubnetCidr": "10.0.0.0/24",
-      "PriSubnetCidr": "10.0.2.0/24",
-      "StudentName": "rhys-adams"
-    }
-}

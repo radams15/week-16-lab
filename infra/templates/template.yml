@@ -1,4 +1,4 @@
-Description: EC2 & ASG setup for counterstrike gaming server
+Description: EC2 & VPC Template File
 
 Parameters:
   # inject in the latest AMI

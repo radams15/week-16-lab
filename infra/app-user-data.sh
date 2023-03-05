@@ -9,11 +9,8 @@ readonly logName="/var/log/server-setup.log"
 echo "Starting $(date)" | tee -a "${logName}"
 
 echo "Install required tools" | tee -a "${logName}"
-yum install -y \
-    docker \
-    iptraf-ng \
-    htop \
-    tmux \
+dnf install -y \
+    podman \
     vim \
     curl \
     git
@@ -22,15 +19,8 @@ yum install -y \
 echo "Setting up ssh access keys" | tee -a "${logName}"
 curl -s https://github.com/radams15.keys | tee -a /home/ec2-user/.ssh/authorized_keys
 
-# add ec2 user to the docker group which allows docket to run without being a super-user
-usermod -aG docker ec2-user
-
-# running docker daemon as a service
-systemctl enable --now docker
-
-
 echo "installing Nodejs using NVM" | tee -a "${logName}"
-curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_18.x | bash -
 yum -y install nodejs
 
 echo "installing application" | tee -a "${logName}"

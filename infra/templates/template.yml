@@ -6,7 +6,7 @@ Parameters:
     Type: AWS::EC2::Image::Id
   UserDataScript:
     Type: String
-  instanceType:
+  InstanceType:
     Type: String
     Default: t2.micro
   KeyName:
@@ -24,194 +24,167 @@ Parameters:
 
 
 Resources:
-  Lab16Vpc:
-    Type: AWS::EC2::VPC
+  MainVPC:
+    Type: 'AWS::EC2::VPC'
     Properties:
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1"
       CidrBlock: !Ref VpcCidr
-
-  PubSub1:
-    Type: AWS::EC2::Subnet
+      InstanceTenancy: 'default'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-vpc-1"
+          
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
     Properties:
-      VpcId: !Ref Lab16Vpc
+      VpcId: !Ref MainVPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       CidrBlock: !Ref PubSubnetCidr
       MapPublicIpOnLaunch: true
       Tags:
-        - Key: Name
+        - Key: 'Name'
           Value: !Sub "${StudentName}-vpc-1-pub-sub"
-
-  PriSub1:
-    Type: AWS::EC2::Subnet
+          
+  PrivateSubnet:
+    Type: 'AWS::EC2::Subnet'
     Properties:
-      VpcId: !Ref Lab16Vpc
+      VpcId: !Ref MainVPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       CidrBlock: !Ref PriSubnetCidr
       Tags:
-        - Key: Name
+        - Key: 'Name'
           Value: !Sub "${StudentName}-vpc-1-pri-sub"
           
-  NATGateway:
-   Type: AWS::EC2::NatGateway
-   Properties:
-      AllocationId: !GetAtt NATGatewayEIP.AllocationId
-      SubnetId: !Ref PubSub1
-      Tags:
-      - Key: stack
-        Value: production
-      - Key: Name
-        Value: !Sub "${StudentName}-vpc-1-nat-gw"
-        
-  NATGatewayEIP:
-   Type: AWS::EC2::EIP
-   Properties:
-      Domain: vpc
-
-  RouteNATGateway:
-   Type: AWS::EC2::Route
-   Properties:
-      RouteTableId: !Ref NatGwRouteTable1
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NATGateway
-
-  NatGwRouteTable1:
-    Type: AWS::EC2::RouteTable
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      VpcId: !Ref Lab16Vpc
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-route-table-1"
+      VpcId: !Ref MainVPC
+      GroupDescription: 'Allows incoming traffic on ports 22 (SSH), 80 (HTTP) from CIDR block 0.0.0.0/0'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: '0.0.0.0/0'
           
-  NetGateway1:
-    Type: AWS::EC2::InternetGateway
-    AllocationId: !GetAtt NetGatewayEIP.AllocationId
-    Properties:
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-net-gw"
-          
-  NetGatewayEIP:
-   Type: AWS::EC2::EIP
-   Properties:
-      Domain: vpc
- 
-  NetGwAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref NetGateway1
-      VpcId: !Ref Lab16Vpc
-  
-  NetGwRouteTable1:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref Lab16Vpc
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-net-gw-route-table"
-
-  NetGwRoute1:
-    Type: AWS::EC2::Route
-    DependsOn:
-      - NetGwAttachment
-    Properties:
-      RouteTableId: !Ref NetGwRouteTable1
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref NetGateway1
-      
-  PubSubPubRouteAssoc1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref NatGwRouteTable1
-      SubnetId: !Ref PubSub1
-      
-  PriSubPriRouteAssoc1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref NatGwRouteTable1
-      SubnetId: !Ref PriSub1
-
-  LoadBalance1:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties: 
-      Name: !Sub "${StudentName}-LoadBalance1"
-      Subnets:
-        - !Ref PubSub1
-      Tags: 
-        - Key: Name
-          Value: !Sub "${StudentName}-LoadBalance1"
-      Type: "network"
-  
-  LoadBalance1Target:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Sub "${StudentName}-LoadBalanceTarget"
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-LoadBalance1Target"
-      TargetType: "instance"
-      Targets:
-        - Id: !Ref EC2Instance
-      Port: 22
-      Protocol: "TCP"
-      VpcId: !Ref Lab16Vpc
-
-  LoadBalance1Listener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref LoadBalance1
-      DefaultActions:
-        - Type: "forward"
-          ForwardConfig:
-            TargetGroups:
-              - TargetGroupArn: !Ref LoadBalance1Target
-      Port: 22
-      Protocol: "TCP"
-
   EC2Instance:
-    Type: AWS::EC2::Instance
+    Type: 'AWS::EC2::Instance'
     Properties:
-      InstanceType: !Ref 'instanceType'
-      KeyName: !Ref 'KeyName'
-      ImageId: !Ref 'Linux2Ami'
+      InstanceType: 't2.micro'
+      ImageId: !Ref Linux2Ami
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
       Tags:
         - Key: Name
           Value: !Sub "${StudentName}-ec2-instance-1"
-      NetworkInterfaces:
-        - GroupSet:
-            - !Ref EC2SecurityGroup
-          DeviceIndex: '0'
-          DeleteOnTermination: true
-          SubnetId: !Ref PriSub1
       UserData:
         Fn::Base64: !Ref UserDataScript
-  
-  EC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref Lab16Vpc
-      GroupDescription: Enable SSH access via port 22
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-ec2-instance-1-sec-grp"
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: '0.0.0.0/0'
-        
-      - IpProtocol: tcp
-        FromPort: 8080
-        ToPort: 8080
-        CidrIp: '0.0.0.0/0'
-        
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: '0.0.0.0/0'
 
-# Exporting outputs to use in downstream stacks
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-internet-gateway"
+  
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref MainVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref MainVPC
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-pub-route-table"
+          
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref MainVPC
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-pri-route-table"
+          
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn:
+      - PublicRouteTable
+      - InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+      
+  PrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NatGateway
+      
+  MyPublicSubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn:
+      - PublicRoute
+      - PublicRouteTable
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+      
+     
+  NatEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+        Domain: 'vpc'
+
+  NatGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+        AllocationId: !GetAtt NatEIP.AllocationId
+        SubnetId: !Ref PublicSubnet
+
+  LoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: 'MyLoadBalancer'
+      Subnets:
+        - !Ref PublicSubnet
+      Type: network
+
+  LoadBalancerListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 22
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: 'MyTargetGroup'
+      Port: 22
+      Protocol: TCP
+      TargetType: instance
+      VpcId: !Ref MainVPC
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-LoadBalancerP22Target"
+      Targets:
+        - Id: !Ref EC2Instance
+
 Outputs:
   StackName:
     Value: !Ref AWS::StackName

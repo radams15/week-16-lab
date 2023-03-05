@@ -11,6 +11,7 @@ fi '
 
 
 readonly STUDENT_NAME="rhys-adams"
+
 readonly STACK_NAME="${STUDENT_NAME}-vpc-1"
 readonly TEMPLATE_FILE="$(dirname "${BASH_SOURCE[0]}")/templates/template.yml"
 readonly AWS_DEFAULT_REGION="eu-west-2"
@@ -34,7 +35,7 @@ readonly PRI_SUB_CIDR='10.0.2.0/24'
 : " readonly LINUX2_AMI=$(
   aws ec2 describe-images \
     --owners 309956199498 \
-    --filters 'Name=name,Values=RHEL_HA-8.?_HVM-????????-x86_64-gp2' 'Name=state,Values=available' \
+    --filters 'Name=name,Values=RHEL-8.?.?_HVM-????????-x86_64-??-Hourly2-GP2' 'Name=state,Values=available' \
     --query 'reverse(sort_by(Images, &CreationDate))[:1].ImageId' \
     --output text
 )

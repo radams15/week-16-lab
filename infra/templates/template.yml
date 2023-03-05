@@ -169,8 +169,34 @@ Resources:
       Subnets:
         - !Ref PublicSubnet
       Type: network
+      
+  LoadBalancerP80Listener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LoadBalancerP80Target
 
-  LoadBalancerListener:
+  LoadBalancerP80Target:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: 'Port80Target'
+      Port: 80
+      Protocol: TCP
+      TargetType: instance
+      VpcId: !Ref MainVPC
+      Tags:
+        - Key: 'Name'
+          Value: !Sub "${StudentName}-LoadBalancerP80Target"
+      Targets:
+        - Id: !Ref EC2Instance
+
+      
+
+  LoadBalancerP22Listener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
       LoadBalancerArn: !Ref LoadBalancer
@@ -178,12 +204,12 @@ Resources:
       Protocol: TCP
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref TargetGroup
+          TargetGroupArn: !Ref LoadBalancerP22Target
 
-  TargetGroup:
+  LoadBalancerP22Target:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
-      Name: 'MyTargetGroup'
+      Name: 'Port22Target'
       Port: 22
       Protocol: TCP
       TargetType: instance

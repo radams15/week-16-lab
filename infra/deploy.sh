@@ -24,15 +24,14 @@ readonly VPC_CIDR='10.0.0.0/22'
 readonly PUB_SUB_CIDR='10.0.0.0/24'
 readonly PRI_SUB_CIDR='10.0.2.0/24'
 
-:" readonly LINUX2_AMI=$(
+: " readonly LINUX2_AMI=$(
   aws ec2 describe-images \
-    --owners 309956199498 \
-    --filters 'Name=name,Values=RHEL-8.?.?_HVM-????????-x86_64-??-Hourly2-GP2' 'Name=state,Values=available' \
+    --owners amazon \
+    --filters 'Name=name,Values=amzn2-ami-hvm-2.0.????????.?-x86_64-gp2' 'Name=state,Values=available' \
     --query 'reverse(sort_by(Images, &CreationDate))[:1].ImageId' \
     --output text
 ) "
-
-readonly LINUX2_AMI='ami-08970fb2e5767e3b8'
+readonly LINUX2_AMI='ami-008f4281d2c5de558'
 
 echo "This is the current AMI: ${LINUX2_AMI}"
 

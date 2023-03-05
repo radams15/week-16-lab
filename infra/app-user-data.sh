@@ -9,19 +9,20 @@ readonly logName="/var/log/server-setup.log"
 echo "Starting $(date)" | tee -a "${logName}"
 
 echo "Install required tools" | tee -a "${logName}"
-dnf install -y podman vim curl git
+yum install -y docker vim curl
 
 # put your own github username here
 echo "Setting up ssh access keys" | tee -a "${logName}"
 curl -s https://github.com/radams15.keys | tee -a /home/ec2-user/.ssh/authorized_keys
 
-echo "installing Nodejs using NVM" | tee -a "${logName}"
-curl --silent --location https://rpm.nodesource.com/setup_18.x | bash -
+usermod -aG docker ec2-user
 
-dnf install -y nodejs
+# running docker daemon as a service
+systemctl enable --now docker
 
-echo "installing application" | tee -a "${logName}"
-cd /home/ec2-user && git clone https://github.com/radams15/week-16-lab.git
+# Allow docker to bind to port 80
+sysctl -w net.ipv4.ip_unprivileged_port_start=80
 
-echo "installing deps and starting application $(date)" | tee -a "${logName}"
-cd /home/ec2-user/week-16-lab/app && npm install && DEBUG=* PORT=80 npm start
+
+# Run docker container as ec2-user
+sudo -u ec2-user docker run -d -p 80:8080 --rm docker.io/radams15/aaf-internal-notes-system

@@ -21,7 +21,8 @@ curl -s https://github.com/radams15.keys | tee -a /home/ec2-user/.ssh/authorized
 
 echo "installing Nodejs using NVM" | tee -a "${logName}"
 curl --silent --location https://rpm.nodesource.com/setup_18.x | bash -
-yum -y install nodejs
+
+dnf install -y nodejs
 
 echo "installing application" | tee -a "${logName}"
 (cd /home/ec2-user && git clone https://github.com/radams15/week-16-lab.git)

@@ -3,11 +3,11 @@
 export AWS_REGION=eu-west-2
 export AWS_DEFAULT_REGION=eu-west-2
 
-if ! aws sts get-caller-identity
+: ' if ! aws sts get-caller-identity
 then
     echo >&2 "aws creds not working"
     exit 2
-fi
+fi '
 
 
 readonly STUDENT_NAME="rhys-adams"
@@ -21,15 +21,22 @@ readonly VPC_CIDR='10.0.0.0/22'
 readonly PUB_SUB_CIDR='10.0.0.0/24'
 readonly PRI_SUB_CIDR='10.0.2.0/24'
 
-readonly LINUX2_AMI=$(
+: " readonly LINUX2_AMI=$(
   aws ec2 describe-images \
     --owners amazon \
     --filters 'Name=name,Values=amzn2-ami-hvm-2.0.????????.?-x86_64-gp2' 'Name=state,Values=available' \
     --query 'reverse(sort_by(Images, &CreationDate))[:1].ImageId' \
     --output text
-)
+) "
+readonly LINUX2_AMI='ami-008f4281d2c5de558'
 
 echo "This is the current Linux 2 AMI: ${LINUX2_AMI}"
+
+# validate the template
+#aws cloudformation validate-template --template-body "file://${TEMPLATE_FILE}"
+
+# lint
+#podman run --rm -v .:/data -it docker.io/aztek/cfn-lint:latest cfn-lint /data/templates/template.yml
 
 # deploys server
 aws cloudformation deploy \

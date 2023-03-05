@@ -3,7 +3,7 @@ Description: EC2 & ASG setup for counterstrike gaming server
 Parameters:
   # inject in the latest AMI
   Linux2Ami:
-    Type: String
+    Type: AWS::EC2::Image::Id
   UserDataScript:
     Type: String
   instanceType:
@@ -20,8 +20,6 @@ Parameters:
   PubSubnetCidr:
     Type: String
   PriSubnetCidr:
-    Type: String
-  StudentName:
     Type: String
 
 
@@ -70,17 +68,13 @@ Resources:
    Type: AWS::EC2::EIP
    Properties:
       Domain: vpc
-      
+
   RouteNATGateway:
-   DependsOn: NATGateway
    Type: AWS::EC2::Route
    Properties:
       RouteTableId: !Ref NatGwRouteTable1
-      DestinationCidrBlock: !Ref PriSubnetCidr
+      DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref NATGateway
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-nat-gw-route"
 
   NatGwRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -92,10 +86,16 @@ Resources:
           
   NetGateway1:
     Type: AWS::EC2::InternetGateway
+    AllocationId: !GetAtt NetGatewayEIP.AllocationId
     Properties:
       Tags:
         - Key: Name
           Value: !Sub "${StudentName}-vpc-1-net-gw"
+          
+  NetGatewayEIP:
+   Type: AWS::EC2::EIP
+   Properties:
+      Domain: vpc
  
   NetGwAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -114,23 +114,13 @@ Resources:
   NetGwRoute1:
     Type: AWS::EC2::Route
     DependsOn:
-      - NetGateway1
       - NetGwAttachment
     Properties:
       RouteTableId: !Ref NetGwRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref NetGateway1
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-net-gw-route1"
       
   PubSubPubRouteAssoc1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref NetGwRouteTable1
-      SubnetId: !Ref PubSub1
-      
-  PubSubPubRouteAssoc2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref NatGwRouteTable1
@@ -152,11 +142,9 @@ Resources:
         - Key: Name
           Value: !Sub "${StudentName}-LoadBalance1"
       Type: "network"
-      
+  
   LoadBalance1Target:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    DependsOn:
-      - EC2Instance
     Properties:
       Name: !Sub "${StudentName}-LoadBalanceTarget"
       Tags:
@@ -173,9 +161,6 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref LoadBalance1
-      Tags:
-        - Key: Name
-          Value: !Sub "${StudentName}-vpc-1-LoadBalanceListener"
       DefaultActions:
         - Type: "forward"
           ForwardConfig:
@@ -196,9 +181,8 @@ Resources:
       NetworkInterfaces:
         - GroupSet:
             - !Ref EC2SecurityGroup
-          AssociatePublicIpAddress: 'true'
           DeviceIndex: '0'
-          DeleteOnTermination: 'true'
+          DeleteOnTermination: true
           SubnetId: !Ref PriSub1
       UserData:
         Fn::Base64: !Ref UserDataScript

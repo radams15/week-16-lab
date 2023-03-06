@@ -73,6 +73,9 @@ Resources:
           
   EC2Instance:
     Type: 'AWS::EC2::Instance'
+    DependsOn:
+      - InternetGateway
+      - NatGateway
     Properties:
       InstanceType: 't2.micro'
       ImageId: !Ref Linux2Ami
@@ -165,7 +168,7 @@ Resources:
   LoadBalancer:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
-      Name: 'MyLoadBalancer'
+      Name: !Sub '${StudentName}-loadbalancer'
       Subnets:
         - !Ref PublicSubnet
       Type: network

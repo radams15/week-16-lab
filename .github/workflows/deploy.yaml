@@ -1,0 +1,49 @@
+name: Deploy Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'AWS Region'
+        default: 'eu-west-2'
+
+jobs:
+  cluster:
+    name: Deploy stack to AWS
+    runs-on: ubuntu-latest
+    outputs:
+      env-name: ${{ steps.env-name.outputs.environment }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      id: creds
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ github.event.inputs.region}}
+
+    - name: Configure environment name
+      id: env-name
+      run: |
+        ENVIRONMENT=`echo $REPO | tr "/" "-"`
+        echo "Environment name: $ENVIRONMENT"
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        user_data=`base64 infra/app-user-data.sh`
+
+    - name: Deploy
+      uses: aws-actions/aws-cloudformation-github-deploy@master
+      with:
+        name: "rhys-adams-week16-cluster"
+        template: "infra/templates/template.yml"
+        no-fail-on-empty-changeset: "1"
+        parameter-overrides: >-
+            Linux2Ami="ami-008f4281d2c5de558",
+            UserDataScript="${user_data}",
+            StudentName="rhys-adams",
+            VpcCidr="10.0.0.0/22",
+            PubSubnetCidr="10.0.0.0/24",
+            PriSubnetCidr="10.0.2.0/24",
+            KeyName="rhys-key-public"

@@ -57,12 +57,6 @@ jobs:
         working-directory: app
         run: npm run test
 
-      # TODO: add supply chain scanning
 
-      # TODO: add unit testing
-
-      # TODO: add cloudformation linting
-
-      # TODO: add deployment to cloudformation
 
       - run: echo "🍏 This job's status is ${{ job.status }}."

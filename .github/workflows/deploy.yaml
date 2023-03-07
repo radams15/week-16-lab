@@ -32,6 +32,7 @@ jobs:
         echo "Environment name: $ENVIRONMENT"
         echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
         user_data=`base64 infra/app-user-data.sh`
+        echo "USER_DATA=$user_data" >> $GITHUB_ENV
 
     - name: Deploy
       uses: aws-actions/aws-cloudformation-github-deploy@master
@@ -41,7 +42,7 @@ jobs:
         no-fail-on-empty-changeset: "1"
         parameter-overrides: >-
             Linux2Ami="ami-008f4281d2c5de558",
-            UserDataScript="${user_data}",
+            UserDataScript=${{ env.USER_DATA }},
             StudentName="rhys-adams",
             VpcCidr="10.0.0.0/22",
             PubSubnetCidr="10.0.0.0/24",

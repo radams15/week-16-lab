@@ -32,7 +32,9 @@ jobs:
         echo "Environment name: $ENVIRONMENT"
         echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
         user_data=`base64 infra/app-user-data.sh`
-        echo "USER_DATA='$user_data'" >> $GITHUB_ENV
+	echo "USER_DATA<<EOF" >> $GITHUB_ENV
+        echo "$user_data" >> $GITHUB_ENV
+	echo "EOF" >> $GITHUB_ENV
 
     - name: Deploy
       uses: aws-actions/aws-cloudformation-github-deploy@master

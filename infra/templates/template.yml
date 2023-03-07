@@ -86,8 +86,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${StudentName}-ec2-instance-1"
-      UserData:
-        Fn::Base64: !Ref UserDataScript
+      UserData: !Ref UserDataScript
 
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'

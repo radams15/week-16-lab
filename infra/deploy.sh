@@ -18,7 +18,7 @@ readonly AWS_DEFAULT_REGION="eu-west-2"
 readonly USER_DATA_SCRIPT=app-user-data.sh
 readonly SSH_KEY_NAME="rhys-key-public"
 
-readonly user_data=$(cat $USER_DATA_SCRIPT)
+readonly user_data=$(base64 $USER_DATA_SCRIPT)
 
 readonly VPC_CIDR='10.0.0.0/22'
 readonly PUB_SUB_CIDR='10.0.0.0/24'
